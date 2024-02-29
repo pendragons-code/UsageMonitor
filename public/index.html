@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>CPU and Memory Usage</title>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+	<canvas id="cpuMemoryChart" width="500" height="500"></canvas>
+<script>
+	const ctx = document.getElementById('cpuMemoryChart').getContext('2d');
+	const memoryData = [];
+	const cpuData = []; // Array to store CPU usage data
+
+	const cpuMemoryChart = new Chart(ctx, {
+		type: 'line',
+		data: {
+			labels: [],
+			datasets: [
+				{
+					label: `Memory Usage:`,
+					data: memoryData,
+					borderColor: 'rgb(54, 162, 235)',
+					tension: 0.1
+				},
+				{
+					label: 'CPU Usage:',
+					data: cpuData,
+					borderColor: 'rgb(255, 0, 0)',
+					tension: 0.1
+				}
+			]
+		},
+		options: {
+			animation: false,
+			scales: {
+				x: {
+					type: 'category',
+					maxBarThickness: 20,
+					max: 20
+				},
+				y: {
+					beginAtZero: true,
+					suggestedMax: 100,
+				}
+			}
+		}
+	});
+
+	function updateChart() {
+		fetch('/systemInfo')
+			.then(response => response.json())
+			.then(data => {
+				const latestMemoryUsage = data.memoryUsagePercentage;
+				const memoryUsageLabel = `Memory Usage: ${latestMemoryUsage}%`;
+
+				memoryData.push(data.memoryUsagePercentage);
+				cpuData.push(data.cpuUsage); // Add new CPU usage data
+
+				cpuMemoryChart.data.labels.push('');
+
+				if (memoryData.length > 60) {
+					memoryData.shift();
+					cpuData.shift();
+				}
+
+				cpuMemoryChart.data.datasets[0].label = `Memory Usage: ${latestMemoryUsage}% of ${(data.totalMemory / Math.pow(1024, 3)).toFixed(2)}GB`;
+				
+				const cpuUsageLabel = `CPU Usage: ${data.cpuUsage}%`;
+				cpuMemoryChart.data.datasets[1].label = cpuUsageLabel;
+
+				cpuMemoryChart.update();
+			});
+	}
+
+	setInterval(updateChart, 1000);
+</script>
+</body>
+</html>
+
